@@ -1,67 +1,53 @@
 <?php
-require_once "../_config/config.php";
-//require 'functions.php';
+// functions.php
 
-if( isset($_POST["register"]) ) {
+function registrasi($data, $conn) {
+    
+    // --- Data Sanitization (Trimming is enough before binding) ---
+    $nama = trim($data['nama']);
+    $username = strtolower(stripslashes(trim($data['username']))); // Ensure consistent casing
+    $password = $data['password'];
+    $password2 = $data['password2'];
 
-    if( registrasi($_POST) > 0) {
-        echo "<script>
-                alert('User baru berhasil ditambahkan!');
-                window.location='index.html';
-              </script>";
-    } else {
-        echo mysqli_error($conn);
-      }
+    // --- Validation Checks ---
+    if (empty($nama) || empty($username) || empty($password) || empty($password2)) {
+        // Handle empty fields error (e.g., return 0 or throw exception)
+        return 0; 
+    }
+
+    if ($password !== $password2) {
+        // Handle password mismatch error
+        return 0; 
+    }
+    
+    // --- SQL Injection Fix: Check for existing username (Prepared Statement) ---
+    $stmt_check = $conn->prepare("SELECT username FROM users WHERE username = ?");
+    if (!$stmt_check) { return 0; }
+    $stmt_check->bind_param("s", $username);
+    $stmt_check->execute();
+    $result = $stmt_check->get_result();
+    
+    if ($result->num_rows > 0) {
+        // Handle username already exists error
+        $stmt_check->close();
+        return 0; 
+    }
+    $stmt_check->close();
+
+    // --- CRITICAL SECURITY: Password Hashing ---
+    $hashed_password = password_hash($password, PASSWORD_DEFAULT);
+
+    // --- SQL Injection Fix: Insert new user (Prepared Statement) ---
+    $sql_insert = "INSERT INTO users (name, username, password) VALUES (?, ?, ?)";
+    $stmt_insert = $conn->prepare($sql_insert);
+    
+    if (!$stmt_insert) { return 0; }
+    
+    // sss: 3 strings (name, username, hashed_password)
+    $stmt_insert->bind_param("sss", $nama, $username, $hashed_password);
+    $success = $stmt_insert->execute();
+    $stmt_insert->close();
+    
+    return $success ? 1 : 0;
 }
-
 ?>
-
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="utf-8">
-    <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <meta name="description" content="">
-    <meta name="author" content="">
-    <title>Login - FMDB</title>
-    <!-- Bootstrap Core CSS -->
-    <link href="<?=base_url('_assets/css/bootstrap.min.css');?>" rel="stylesheet">
-    <link rel="icon" href="<?=base_url('_assets/favicon.svg')?>">
-</head>
-<body>
-  <div align= "center" class="container" style="margin-top: 100px;">
-      <h2>Halaman Registerasi Kurator</h2>
-      <br>
-      <div class="row">
-          <div class="col-lg-6 col-lg-offset-3">
-              <form action="" method="post" >
-                  <div class="form-group">
-                      <label for="nama">Input Nama</label>
-                      <input type="text" name="nama" id="nama" class="form-control" required autofocus>
-                  </div>
-                  <div class="form-group">
-                    <label for="nama">Input Username</label>
-                    <input type="text" name="username" id="username" class="form-control" required autofocus>
-                  </div>
-                  <div class="form-group">
-                      <label for="password">Input Password</label>
-                      <input type="password" name="password" id="password" class="form-control" required autofocus>
-                  </div>
-                  <div class="form-group">
-                      <label for="password2">Konfirmasi Password</label>
-                      <input type="password" name="password2" id="password2" class="form-control" required autofocus>
-                  </div>
-                  <div class="form-group pull-right">
-                      <input type="submit" name="register" value="Register!" class="btn btn-success">
-                      <input type="reset" name="reset" value="reset" class="btn btn-default">
-                  </div>
-              </form>
-
-          </div>
-
-      </div>
-    <script src="<?=base_url('_assets/js/jquery.js')?>"></script>
-    <script src="<?=base_url('_assets/js/bootstrap.min.js')?>"></script>
-</body>
-</html>

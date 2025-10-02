@@ -1,0 +1,6 @@
+projectKey=fmdb_sourcecode
+serverUrl=http://localhost:9000
+serverVersion=25.9.0.112764
+dashboardUrl=http://localhost:9000/dashboard?id=fmdb_sourcecode
+ceTaskId=1b7b0794-ef48-439f-b291-13297c47096d
+ceTaskUrl=http://localhost:9000/api/ce/task?id=1b7b0794-ef48-439f-b291-13297c47096d
